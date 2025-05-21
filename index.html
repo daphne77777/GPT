@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Whisperer of Kindness</title>
+  <style>
+    body { background: linear-gradient(to right, #141e30, #243b55);
+      font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; color: white; }
+    nav    { background: #4682b4; padding: 10px 20px; text-align: center; }
+    nav a  { color: #000; text-decoration: none; margin: 0 15px; font-weight: bold; }
+    nav a:hover { text-decoration: underline; }
+    h2     { text-align: center; margin: 20px 0 10px; }
+    #chatbox { border: 2px solid #e6e6fa; border-radius:10px;
+      width:90%; max-width:800px; margin:auto; background:rgba(255,255,255,0.08);
+      height:60vh; overflow-y:auto; padding:10px; }
+    .message { margin:10px 0; }
+    .user    { text-align:right; color:#f7ca18; }
+    .bot     { text-align:left;  color:#00e6e6; }
+    #input-area { display:flex; justify-content:center; margin:20px 0; }
+    input  { width:70%; padding:10px; font-size:16px;
+      border:2px solid #ccc; border-radius:5px; }
+    button { padding:10px; font-size:16px; margin-left:10px;
+      background:#f7ca18; color:#000; border:none; border-radius:5px; cursor:pointer; }
+    #usage { text-align:center; color:#ccc; }
+    footer { text-align:center; padding:10px; font-size:14px;
+      background:#0d1b2a; color:#bbb; }
+    footer a { color:#bbb; margin:0 10px; }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="https://daphne.co.za">Main Page</a>
+  <a href="https://mp3.daphne.co.za">MP3 Music</a>
+  <a href="https://fireproof.daphne.co.za">Fireproof</a>
+</nav>
+<h2>GPT Whisperer of Kindness</h2>
+<div id="chatbox"></div>
+<div id="input-area">
+  <input id="user-input" placeholder="Enter your question here" />
+  <button onclick="sendMessage()">Send</button>
+</div>
+<div id="usage"></div>
+<footer>
+  Navigate:
+  <a href="https://daphne.co.za">daphne.co.za</a> |
+  <a href="https://mp3.daphne.co.za">MP3 & Downloads</a> |
+  <a href="https://fireproof.daphne.co.za">Fireproof</a> |
+  <a href="/"><strong>Return to Whisperer</strong></a>
+</footer>
+<script>
+async function sendMessage() {
+  let txt = document.getElementById('user-input');
+  let msg = txt.value.trim(); if(!msg) return;
+  append(msg, 'user'); txt.value = '';
+
+  try {
+    let res = await fetch('/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message: msg})
+    });
+    let reader = res.body.getReader(), decoder = new TextDecoder();
+    append('', 'bot');
+    let done, chunk;
+    while (!done) {
+      ({value: chunk, done} = await reader.read());
+      if (chunk) updateLast(decoder.decode(chunk));
+    }
+    updateUsage();
+  } catch(e) {
+    append('⚠️ Whisperer could not be reached.','bot');
+  }
+}
+function append(txt, cls) {
+  let d = document.createElement('div');
+  d.className = 'message ' + cls; d.innerText = txt;
+  document.getElementById('chatbox').appendChild(d);
+  document.getElementById('chatbox').scrollTop = 1e9;
+}
+function updateLast(txt) {
+  let msgs = document.querySelectorAll('#chatbox .bot');
+  let last = msgs[msgs.length-1];
+  last.innerText += txt;
+  document.getElementById('chatbox').scrollTop = 1e9;
+}
+async function updateUsage() {
+  let r = await fetch('/usage');
+  let j = await r.json();
+  document.getElementById('usage')
+    .innerText = `Messages: ${j.messages} | Tokens used: ${j.tokens_used}`;
+}
+</script>
+</body>
+</html>
